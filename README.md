@@ -1,75 +1,45 @@
-# Multimodal Meme Search — Semantic Image Retrieval via Text Embeddings
+# Meme search: finding images by describing them
 
-> Text-to-image retrieval system using TF-IDF, CBOW, and Skip-Gram embeddings with cosine similarity ranking
-
----
-
-## Overview
-
-A multimodal information retrieval system that finds images based on natural language queries. Given a text query, the system retrieves semantically relevant memes from a corpus using three different embedding strategies — demonstrating how representation choice fundamentally affects retrieval quality.
-
-This project directly applies the same core principles behind modern RAG (Retrieval-Augmented Generation) systems: encode content into a vector space, index it efficiently, and retrieve by semantic similarity at query time.
-
----
-
-## System Architecture
+Type a description ("person in a Spider Man outfit") and get back the matching memes. The search runs over the caption text attached to each image, and compares two classic ways of turning text into vectors.
 
 ```
-Query Text ──► Tokenization ──► Embedding Model ──► Query Vector
-                                                          │
-                                               Cosine Similarity
-                                                          │
-Image Corpus ──► Text Extraction ──► Embedding ──► Index  │
-                                                          ▼
-                                               Ranked Results (Top-K)
+query text --> clean and lemmatise --> vector --> cosine similarity against every caption vector --> top matches shown as images
 ```
 
----
+## Methods compared
 
-## Embedding Strategies
+- **TF-IDF:** sparse word weighting with scikit-learn. No training, matches exact words well.
+- **Word2Vec:** 512 dimensional word vectors trained on the captions with Gensim (window 4, 100 epochs). A caption or a query is the average of its word vectors, so related words can match even when the exact word differs.
 
-### 1. TF-IDF (Baseline)
-- Term frequency-inverse document frequency weighting
-- Fast, interpretable, zero training required
-- Best for exact keyword matching
+Text is cleaned first: lower casing, punctuation and stop word removal, and lemmatisation with NLTK.
 
-### 2. CBOW (Continuous Bag of Words)
-- Predicts center word from surrounding context window
-- Learns dense semantic representations
-- Better generalization than TF-IDF on paraphrased queries
+## What the notebook shows
 
-### 3. Skip-Gram
-- Predicts surrounding context from center word
-- Better on rare/infrequent terms than CBOW
-- Strongest overall retrieval performance
+`notebooks/processor.ipynb` runs the same query through each method and displays the retrieved images side by side. Observations recorded in the notebook, from that run on Kaggle:
 
----
-
-## Results
-
-| Method | Top-1 Accuracy | Top-5 Accuracy |
+| | TF-IDF | Word2Vec |
 |---|---|---|
-| TF-IDF | 61% | 78% |
-| CBOW | 71% | 85% |
-| Skip-Gram | **74%** | **87%** |
+| Time per query | about 16 seconds | about 3 seconds |
+| Training time | none | about 90 seconds |
+| Behaviour | strongest on exact wording | better on related wording |
 
-*Evaluated on 200 held-out query-image pairs*
+This is a qualitative comparison. The notebook does not contain a labelled evaluation set, so no accuracy figures are claimed.
 
----
+## Known issue
 
-## Technical Stack
+The model labelled CBOW is currently trained with the same skip gram setting as the Skip-Gram model (`sg=1` in both calls), so the two Word2Vec result sets come from the same algorithm. The fix is a one character change (`sg=0`) followed by a rerun.
 
-- **Embeddings**: Gensim Word2Vec (CBOW + Skip-Gram), scikit-learn TF-IDF
-- **Similarity**: Cosine similarity over precomputed embedding vectors
-- **Data**: [MemeConvX dataset](https://www.kaggle.com/datasets/harshittiwari007/meme-convx)
+## Data
 
----
+[MemeConvX](https://www.kaggle.com/datasets/harshittiwari007/meme-convx) on Kaggle. The images are not included in this repository.
 
-## Why This Matters
+## Why it is relevant
 
-Modern semantic search — used in production RAG systems, PGvector, Pinecone, Weaviate — is built on this same foundation: map queries and documents into the same vector space, retrieve by proximity. This project demonstrates the full pipeline from raw text → embeddings → indexed retrieval → ranked results.
+This is the same retrieval idea that sits under modern semantic search and retrieval augmented generation: put queries and documents in one vector space, then rank by similarity. Here it is built from first principles, without a vector database.
 
----
+## Stack
+
+Python, scikit-learn, Gensim, NLTK, pandas, matplotlib.
 
 ## License
 
